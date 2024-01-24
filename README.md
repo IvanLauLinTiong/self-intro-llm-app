@@ -12,6 +12,10 @@ The architecture of the applcation is as followed:
 
 ```
 
+## Data Population
+
+pass
+
 ## Env Variable
 
 Rename the `.env.example` to `.env` and set your OpenAI API Key.
