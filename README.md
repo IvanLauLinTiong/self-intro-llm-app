@@ -21,7 +21,7 @@ Now you can interact with the application at <http://localhost:7860>.
 
 ## UI
 
-![chatbot ui](./assets/chatbot_ui.png)
+![ui](./assets/ui.png)
 
 ## Architecture
 
