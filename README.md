@@ -2,15 +2,10 @@
 
 ## Architecture
 
-The architecture of the applcation is as followed:
-
-![architecture](./assets/)
+pass
 
 ## Setup
-
-```docker
-
-```
+pass
 
 ## Data Population
 
@@ -21,3 +16,4 @@ pass
 Rename the `.env.example` to `.env` and set your OpenAI API Key.
 
 ## Future Works
+pass

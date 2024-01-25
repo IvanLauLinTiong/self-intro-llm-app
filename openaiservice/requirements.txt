@@ -1,3 +1,6 @@
+fastapi
+requests
+uvicorn
 chainlit
 chromadb
 langchain
@@ -6,3 +9,4 @@ openai
 pypdf
 python-dotenv
 tiktoken
+
