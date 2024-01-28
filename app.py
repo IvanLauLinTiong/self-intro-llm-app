@@ -13,13 +13,12 @@ from dotenv import load_dotenv
 from pathlib import Path
 import chainlit as cl
 
-
 load_dotenv()
 
 
 @cl.on_chat_start
 async def on_chat_start():
-    msg = cl.Message(content=f"Starting...", disable_feedback=True)
+    msg = cl.Message(content="")
     await msg.send()
 
     system_template = r"""
@@ -27,7 +26,8 @@ async def on_chat_start():
     The contexts are personal details for LinTiong Lau (Ivan) which describes his employment history, education,
     skills, projects, etc. If you don't know the answer, just say that you don't know, don't try to make up an answer.
     Context: {context}
-    Chat History: {chat_history}"""
+    Chat History: {chat_history}
+    Your Response:"""
 
     human_template = "{question}"
 
