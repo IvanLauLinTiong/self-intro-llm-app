@@ -1,8 +1,0 @@
-chainlit
-chromadb
-langchain
-langchain_openai
-openai
-pypdf
-python-dotenv
-tiktoken

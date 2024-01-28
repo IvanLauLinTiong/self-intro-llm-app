@@ -1,2 +1,2 @@
-chainlit
-requests
+chainlit==1.0.200
+requests==2.31.0

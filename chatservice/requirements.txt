@@ -1,4 +1,1 @@
-fastapi
-redis
-requests
-uvicorn
+redis==5.0.1
