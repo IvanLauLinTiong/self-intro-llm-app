@@ -1,0 +1,39 @@
+services:
+
+  frontend:
+    build: ./frontend
+    image: frontend_img
+    ports:
+      - "7860:7860"
+    networks:
+      - chat_network
+    container_name: frontend_container
+
+  chatservice:
+    build: ./chatservice
+    image: chatservice_img
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - chat_network
+    container_name: chatservice_container
+
+  redis:
+    image: redis:5.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - chat_network
+    container_name: redis_container
+
+networks:
+  chat_network:
+
+volumes:
+  redis_data:

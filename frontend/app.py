@@ -3,8 +3,7 @@ import requests
 import uuid
 
 
-BASE_URL = "http://localhost:8000/chatservice"
-conversation = {"chats": []}
+BASE_URL = "http://chatservice:80/chatservice"
 
 
 def generate_chat_id():
@@ -15,24 +14,26 @@ def generate_chat_id():
 async def init():
     chat_id = generate_chat_id()
 
+    response = requests.get(f"{BASE_URL}/{chat_id}")
+    response.raise_for_status()
+    response = response.json()
+
+    if "greeting_msg" in response:
+        await cl.Message(content=response["greeting_msg"]).send()
+
     cl.user_session.set("chat_id", chat_id)
-
-    response = requests.get(BASE_URL + "/" + chat_id)
-    data = response.json()
-
-    if "error" in data:
-        pass
-    else:
-        conversation["chats"].append()
-
-    await cl.Message(content="").send()
 
 
 @cl.on_message
-async def main(message: str):
+async def main(message: cl.Message):
+    msg = cl.Message(content="")
+    await msg.send()
+
     chat_id = cl.user_session.get("chat_id")
+    payload = {"message": message.content}
 
-    response = requests.post(BASE_URL + "/" + chat_id, json={"message": message})
-    data = response.json()
+    response = requests.post(f"{BASE_URL}/{chat_id}", json=payload)
+    response.raise_for_status()
+    msg.content = response.json()["answer"]
 
-    await cl.Message(content="").send()
+    await msg.update()

@@ -1,16 +1,34 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
-import redis
-import requests
-import json
+from fastapi.middleware.cors import CORSMiddleware
 import logging
+from dotenv import find_dotenv, load_dotenv
 
+from langchain.chains import ConversationalRetrievalChain
+from langchain_community.chat_message_histories import RedisChatMessageHistory
+from langchain_community.vectorstores import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+
+
+PERSIST_DIR = "./chroma_db"
+GREETING_MSESSAGE = """Hello World!👋I'm personal chatbot assistant for LinTiong Lau. Feel free to \
+ask me any questions about his background and experience.🤖"""
+
+
+load_dotenv(find_dotenv())
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-r = redis.Redis(host="redis", port=6379, db=0)
+
+class Message(BaseModel):
+    message: str
+
 
 app = FastAPI()
 app.add_middleware(
@@ -20,49 +38,80 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-class Message(BaseModel):
-    role: str
-    content: str
+# Tracked LLM chains
+llm_chains = {}
 
 
-class Chats(BaseModel):
-    chats: List[Message]
+# Templates
+system_template = r"""
+    You are a helpful personal assistant who answers to users questions based on the contexts given to you.
+    The contexts are personal details for LinTiong Lau (Ivan) which describes his employment history, education,
+    skills, projects, etc. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+    Context: {context}
+    Chat History: {chat_history}"""
+
+human_template = "{question}"
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(system_template),
+        HumanMessagePromptTemplate.from_template(human_template),
+    ]
+)
+
+
+def generate_llm_chain(chat_id: str) -> ConversationalRetrievalChain:
+    embedding = OpenAIEmbeddings()
+    llm = ChatOpenAI(temperature=0)
+    vectordb = Chroma(persist_directory=PERSIST_DIR, embedding_function=embedding)
+    retriever = vectordb.as_retriever(search_kwargs={"k": 2})
+
+    message_history = RedisChatMessageHistory(
+        session_id=chat_id,
+        url="redis://redis:6379/0",
+    )
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        output_key="answer",
+        chat_memory=message_history,
+        return_messages=True,
+    )
+
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+    chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        chain_type="stuff",
+        combine_docs_chain_kwargs={"prompt": prompt},
+        retriever=retriever,
+        memory=memory,
+    )
+
+    return chain
+
+
+@app.get("/health")
+async def health():
+    return {"status": "OK"}
 
 
 @app.get("/chatservice/{chat_id}")
-async def get_chat_history(chat_id: str):
-    logger.info(f"Retrieving chat history with initial id {chat_id}")
-    if chat_history := r.get(chat_id):
-        return json.loads(chat_history)
-    else:
-        return {"error": "Chat history not found"}
+async def chatservice(chat_id: str):
+    if chat_id in llm_chains:
+        return {"chat_id": chat_id}
+
+    chain = generate_llm_chain(chat_id)
+    llm_chains[chat_id] = chain
+
+    return {"chat_id": chat_id, "greeting_msg": GREETING_MSESSAGE}
 
 
 @app.post("/chatservice/{chat_id}")
-async def chatservice(chat_id: str, conversation: Chats):
-    logger.info(f"Sending chat conversation with ID {chat_id} to OpenAI")
-    if existing_chat_history := r.get(chat_id):
-        existing_chat_history = json.loads(existing_chat_history)
-    else:
-        existing_chat_history = {
-            "chats": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful personal AI chatbot.",
-                }
-            ]
-        }
-    existing_chat_history["chats"].append(conversation.dict()["chats"][-1])
+async def chatservice(chat_id: str, message: Message):
 
-    response = requests.post(
-        f"http://opeanaiservice:80/openaiservice/{chat_id}", json=existing_chat_history
-    )
-    response.raise_for_status()
-    ai_message = response.json()["reply"]
+    chain = llm_chains[chat_id]
 
-    existing_chat_history["chats"].append({"role": "ai", "content": ai_message})
+    res = await chain.ainvoke(message.message)  # maybe cadd asynlangchaincallback ?
 
-    r.set(chat_id, json.dumps(existing_chat_history))
+    answer = res["answer"]
 
-    return existing_chat_history
+    return {"chat_id": chat_id, "answer": answer}

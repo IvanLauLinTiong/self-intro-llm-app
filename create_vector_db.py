@@ -7,7 +7,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-PERSIST_DIR = "./chroma_db"
+PERSIST_DIR = "./chatservice/chroma_db"
 CHUNK_SIZE = 512
 CHUNK_OVERLAP = 24
 

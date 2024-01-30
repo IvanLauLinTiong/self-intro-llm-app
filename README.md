@@ -16,4 +16,4 @@ pass
 Rename the `.env.example` to `.env` and set your OpenAI API Key.
 
 ## Future Works
-pass
+[] Add job queue (rabbitmq. kafka) to process chat requests sent by multiple chat users.
