@@ -29,4 +29,4 @@ The application is a multi-container application which consists of the following
 ![multi_container_llm_app](./assets/multi_container_llm_app.PNG)
 
 ## Future Works
-[ ] Add job queue (rabbitmq. kafka) to process chat requests sent by multiple chat users.
+- [ ] Add job queue (rabbitmq. kafka) to process chat requests sent by multiple chat users.
